@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#10243b">
+  <meta name="description" content="AR เรียนรู้พลังงานจลน์ พลังงานศักย์ และการอนุรักษ์พลังงานกล">
+  <title>Physics Energy AR</title>
+  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+  <style>
+    :root { color-scheme: dark; --navy:#10243b; --glass:rgba(10,22,38,.86); --red:#ed5b55; --blue:#35a8ff; --gold:#ffd166; --mint:#6be7c8; }
+    * { box-sizing:border-box; }
+    html, body { margin:0; width:100%; height:100%; overflow:hidden; background:#081421; font-family:system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif; color:white; }
+    a-scene { position:fixed !important; inset:0; width:100%; height:100%; z-index:0; }
+    .hud { position:fixed; z-index:10; left:0; right:0; pointer-events:none; }
+    .top { top:0; padding:calc(12px + env(safe-area-inset-top)) 14px 10px; display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+    .brand { background:rgba(9,21,37,.76); border:1px solid rgba(255,255,255,.16); backdrop-filter:blur(12px); border-radius:16px; padding:10px 13px; max-width:75%; box-shadow:0 8px 26px #0003; }
+    .eyebrow { font-size:10px; letter-spacing:.15em; color:#9ec6e9; font-weight:800; }
+    h1 { font-size:clamp(15px,4vw,20px); margin:2px 0 0; line-height:1.22; }
+    .status { background:rgba(9,21,37,.82); border:1px solid rgba(255,255,255,.16); border-radius:999px; padding:8px 11px; font-size:11px; line-height:1.2; display:flex; gap:7px; align-items:center; white-space:nowrap; }
+    .dot { width:8px; height:8px; border-radius:50%; background:var(--gold); box-shadow:0 0 12px currentColor; }
+    .status.found .dot { background:var(--mint); }
+    .status.error .dot { background:var(--red); }
+    .bottom { bottom:0; padding:10px 12px calc(12px + env(safe-area-inset-bottom)); }
+    .panel { pointer-events:auto; max-width:760px; margin:0 auto; background:var(--glass); backdrop-filter:blur(16px); border:1px solid rgba(255,255,255,.16); border-radius:20px; padding:12px; box-shadow:0 10px 34px #0005; }
+    .panel-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; }
+    .panel h2 { font-size:15px; margin:0; }
+    #equation { font-size:12px; color:var(--gold); font-weight:800; white-space:nowrap; }
+    #explanation { color:#d8e4f2; font-size:12px; line-height:1.5; margin:0; }
+    .hint { font-size:10px; color:#a8bbcf; margin-top:7px; }
+    .modes { display:flex; gap:7px; overflow-x:auto; padding:1px 0 3px; margin-bottom:8px; scrollbar-width:none; }
+    .modes::-webkit-scrollbar { display:none; }
+    .mode { flex:1 0 auto; min-width:83px; border:1px solid #52657a; color:#edf5ff; background:#172e49; border-radius:12px; padding:9px 10px; font:inherit; font-size:11px; font-weight:750; cursor:pointer; }
+    .mode[aria-pressed="true"] { color:#071725; background:#b7e8ff; border-color:#b7e8ff; }
+    .help { pointer-events:auto; border:0; color:#dceeff; background:rgba(9,21,37,.72); border:1px solid rgba(255,255,255,.18); border-radius:12px; padding:9px 11px; font-size:11px; cursor:pointer; }
+    .target-help { position:fixed; z-index:11; left:50%; top:calc(78px + env(safe-area-inset-top)); transform:translateX(-50%); width:max-content; max-width:calc(100vw - 28px); text-align:center; padding:8px 12px; border-radius:14px; border:1px solid rgba(255,255,255,.16); background:rgba(9,21,37,.72); backdrop-filter:blur(10px); font-size:11px; color:#d9e8f8; pointer-events:none; }
+    #helpModal { display:none; position:fixed; z-index:30; inset:0; padding:22px; background:#020811d9; align-items:center; justify-content:center; }
+    #helpModal.open { display:flex; }
+    .modal-card { pointer-events:auto; width:min(520px,100%); background:#10243b; border:1px solid #3d5875; border-radius:20px; padding:20px; line-height:1.6; box-shadow:0 20px 70px #0008; }
+    .modal-card h2 { margin:0 0 10px; font-size:20px; }
+    .modal-card p { color:#d2deed; font-size:14px; }
+    .modal-card button { background:#b7e8ff; color:#092039; border:0; border-radius:12px; padding:10px 16px; font-weight:800; }
+    @media (min-width:760px) { .bottom { padding-bottom:20px; } .panel { padding:16px 18px; } #explanation { font-size:14px; } .hint { font-size:11px; } }
+  </style>
+</head>
+<body>
+  <div class="hud top">
+    <div class="brand"><div class="eyebrow">INTERACTIVE WEB AR · PHYSICS</div><h1>พลังงานจลน์และพลังงานศักย์</h1></div>
+    <div class="status" id="status"><span class="dot"></span><span id="statusText">กำลังเตรียมกล้อง…</span></div>
+  </div>
+  <div class="target-help" id="targetHelp">อนุญาตกล้อง แล้วเล็งไปที่รูปโมเดลเป้าหมาย</div>
+
+  <div class="hud bottom">
+    <section class="panel" aria-label="คำอธิบายฟิสิกส์">
+      <div class="modes" role="group" aria-label="เลือกเนื้อหา">
+        <button class="mode" data-mode="all" aria-pressed="true">ภาพรวม</button>
+        <button class="mode" data-mode="kinetic" aria-pressed="false">พลังงานจลน์</button>
+        <button class="mode" data-mode="potential" aria-pressed="false">พลังงานศักย์</button>
+        <button class="mode" data-mode="conservation" aria-pressed="false">พลังงานกล</button>
+      </div>
+      <div class="panel-head"><h2 id="topic">พลังงานกลคงที่</h2><span id="equation">E = Ek + Ep</span></div>
+      <p id="explanation">เมื่อไม่มีแรงเสียดทาน พลังงานกลรวมคงที่ พลังงานศักย์สามารถเปลี่ยนเป็นพลังงานจลน์ และเปลี่ยนกลับได้</p>
+      <div class="hint">เคล็ดลับ: ขยับมือถือช้า ๆ ให้เห็นรูปเป้าหมายทั้งภาพ และหลีกเลี่ยงแสงสะท้อน</div>
+    </section>
+  </div>
+
+  <div id="helpModal" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+    <div class="modal-card">
+      <h2 id="helpTitle">วิธีใช้งาน Physics AR</h2>
+      <p>1. เปิดเว็บผ่าน QR Code และอนุญาตให้ใช้กล้อง</p>
+      <p>2. เล็งกล้องไปที่ภาพ <b>physics-target.png</b> ที่พิมพ์ไว้หรือแสดงบนอีกหน้าจอ ภาพเป้าหมายต้องตรงกับภาพที่ใช้สร้างไฟล์ <b>targets.mind</b></p>
+      <p>3. เมื่อพบภาพ จะมีการ์ด AR ลอยขึ้นมา เลือกหัวข้อด้านล่างเพื่อดูคำอธิบายแต่ละพลังงาน</p>
+      <p><b>หมายเหตุ:</b> การติดตามจากภาพถ่ายเป็นการติดตามภาพ 2 มิติ การเล็งกล้องไปยังโมเดลสามมิติจริงโดยตรงอาจไม่เสถียรเท่าการใช้ภาพเป้าหมาย</p>
+      <button id="closeHelp">เข้าใจแล้ว</button>
+    </div>
+  </div>
+
+  <a-scene id="arScene"
+    mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; uiLoading: no; uiScanning: no; uiError: no"
+    color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights"
+    vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false" embedded>
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+    <a-entity id="targetAnchor" mindar-image-target="targetIndex: 0">
+      <!-- Floating red card: kinetic energy -->
+      <a-entity id="kineticGroup" position="-0.265 0.155 0.08">
+        <a-plane width="0.39" height="0.165" material="shader: flat; color: #c93735; opacity: 0.96; transparent: true"></a-plane>
+        <a-text value="KINETIC ENERGY" color="#ffffff" align="center" width="0.37" position="0 0.035 0.012" scale="0.82 0.82 0.82"></a-text>
+        <a-text value="Ek = 1/2 mv^2" color="#ffe08a" align="center" width="0.37" position="0 -0.022 0.012" scale="1.0 1.0 1.0"></a-text>
+        <a-text value="depends on speed" color="#ffffff" align="center" width="0.36" position="0 -0.057 0.012" scale="0.55 0.55 0.55"></a-text>
+      </a-entity>
+      <!-- Floating blue card: gravitational potential energy -->
+      <a-entity id="potentialGroup" position="0.265 0.155 0.08">
+        <a-plane width="0.39" height="0.165" material="shader: flat; color: #1267aa; opacity: 0.96; transparent: true"></a-plane>
+        <a-text value="POTENTIAL ENERGY" color="#ffffff" align="center" width="0.37" position="0 0.035 0.012" scale="0.78 0.78 0.78"></a-text>
+        <a-text value="Ep = mgh" color="#ffe08a" align="center" width="0.37" position="0 -0.022 0.012" scale="1.0 1.0 1.0"></a-text>
+        <a-text value="depends on height" color="#ffffff" align="center" width="0.36" position="0 -0.057 0.012" scale="0.55 0.55 0.55"></a-text>
+      </a-entity>
+      <!-- Conservation card -->
+      <a-entity id="conservationGroup" position="0 -0.205 0.09">
+        <a-plane width="0.67" height="0.095" material="shader: flat; color: #0b776e; opacity: 0.96; transparent: true"></a-plane>
+        <a-text value="MECHANICAL ENERGY IS CONSERVED" color="#ffffff" align="center" width="0.64" position="0 0.009 0.012" scale="0.78 0.78 0.78"></a-text>
+        <a-text value="Ek + Ep = constant (no friction)" color="#b5ffea" align="center" width="0.64" position="0 -0.025 0.012" scale="0.65 0.65 0.65"></a-text>
+      </a-entity>
+      <!-- Animated particle representing a moving object -->
+      <a-sphere id="movingBall" radius="0.024" color="#ffd166" position="-0.29 -0.055 0.15"
+        animation__move="property: position; from: -0.29 -0.055 0.15; to: 0.29 -0.055 0.15; dur: 2300; easing: linear; loop: true; dir: alternate">
+        <a-sphere radius="0.031" color="#ffd166" opacity="0.18" position="0 0 0"></a-sphere>
+      </a-sphere>
+      <a-entity line="start: -0.29 -0.055 0.12; end: 0.29 -0.055 0.12; color: #ffffff; opacity: 0.65"></a-entity>
+      <a-sphere radius="0.012" color="#ffffff" position="-0.29 -0.055 0.13"></a-sphere>
+      <a-sphere radius="0.012" color="#ffffff" position="0.29 -0.055 0.13"></a-sphere>
+    </a-entity>
+  </a-scene>
+
+  <script>
+    const modeContent = {
+      all: {
+        title: 'พลังงานกลคงที่', equation: 'E = Ek + Ep',
+        text: 'เมื่อไม่มีแรงเสียดทาน พลังงานกลรวมคงที่ พลังงานศักย์สามารถเปลี่ยนเป็นพลังงานจลน์ และเปลี่ยนกลับได้',
+        groups: { kinetic: true, potential: true, conservation: true }
+      },
+      kinetic: {
+        title: 'พลังงานจลน์ (Kinetic Energy)', equation: 'Ek = ½mv²',
+        text: 'พลังงานของวัตถุที่กำลังเคลื่อนที่ ขึ้นกับมวล (m) และอัตราเร็ว (v) โดยอัตราเร็วมีผลเป็นกำลังสอง หากอัตราเร็วเพิ่มเป็น 2 เท่า พลังงานจลน์จะเพิ่มเป็น 4 เท่า',
+        groups: { kinetic: true, potential: false, conservation: true }
+      },
+      potential: {
+        title: 'พลังงานศักย์โน้มถ่วง', equation: 'Ep = mgh',
+        text: 'พลังงานที่เกิดจากตำแหน่งความสูงของวัตถุเมื่อเทียบกับระดับอ้างอิง ขึ้นกับมวล (m) ความเร่งโน้มถ่วง (g) และความสูง (h)',
+        groups: { kinetic: false, potential: true, conservation: true }
+      },
+      conservation: {
+        title: 'การอนุรักษ์พลังงานกล', equation: 'Ek + Ep = ค่าคงที่',
+        text: 'บนเส้นทางไร้แรงเสียดทาน พลังงานกลรวมไม่เปลี่ยนแปลง เมื่อวัตถุลดระดับ พลังงานศักย์ลดลงและพลังงานจลน์เพิ่มขึ้น โดยพลังงานรวมยังเท่าเดิม',
+        groups: { kinetic: false, potential: false, conservation: true }
+      }
+    };
+    const modeButtons = [...document.querySelectorAll('.mode')];
+    function setMode(mode) {
+      const data = modeContent[mode] || modeContent.all;
+      document.getElementById('topic').textContent = data.title;
+      document.getElementById('equation').textContent = data.equation;
+      document.getElementById('explanation').textContent = data.text;
+      for (const [id, visible] of Object.entries(data.groups)) {
+        const el = document.getElementById(id + 'Group');
+        if (el) el.setAttribute('visible', visible);
+      }
+      modeButtons.forEach(btn => btn.setAttribute('aria-pressed', String(btn.dataset.mode === mode)));
+    }
+    modeButtons.forEach(btn => btn.addEventListener('click', () => setMode(btn.dataset.mode)));
+    setMode('all');
+
+    const status = document.getElementById('status');
+    const statusText = document.getElementById('statusText');
+    const targetHelp = document.getElementById('targetHelp');
+    const targetAnchor = document.getElementById('targetAnchor');
+    const scene = document.getElementById('arScene');
+    function setStatus(message, kind) {
+      statusText.textContent = message;
+      status.classList.remove('found', 'error');
+      if (kind) status.classList.add(kind);
+    }
+    targetAnchor.addEventListener('targetFound', () => {
+      setStatus('พบภาพเป้าหมายแล้ว', 'found');
+      targetHelp.textContent = 'พบภาพแล้ว · เลือกหัวข้อด้านล่างเพื่อเรียนรู้';
+    });
+    targetAnchor.addEventListener('targetLost', () => {
+      setStatus('กำลังค้นหาภาพ…');
+      targetHelp.textContent = 'เล็งกล้องไปที่รูปโมเดลเป้าหมายอีกครั้ง';
+    });
+    scene.addEventListener('arReady', () => setStatus('กล้องพร้อม · เล็งไปที่ภาพเป้าหมาย'));
+    scene.addEventListener('arError', () => {
+      setStatus('เปิด AR ไม่สำเร็จ', 'error');
+      targetHelp.textContent = 'ตรวจสอบ HTTPS, การอนุญาตกล้อง และไฟล์ targets.mind';
+    });
+    document.getElementById('closeHelp').addEventListener('click', () => document.getElementById('helpModal').classList.remove('open'));
+    // Show help on demand with a double tap/click on the title card.
+    document.querySelector('.brand').style.pointerEvents = 'auto';
+    document.querySelector('.brand').style.cursor = 'pointer';
+    document.querySelector('.brand').addEventListener('click', () => document.getElementById('helpModal').classList.add('open'));
+    setTimeout(() => {
+      if (!window.isSecureContext && location.protocol !== 'file:') {
+        setStatus('ต้องเปิดผ่าน HTTPS', 'error');
+        targetHelp.textContent = 'เผยแพร่เว็บบน HTTPS ก่อนใช้งานกล้อง';
+      }
+    }, 1800);
+  </script>
+</body>
+</html>

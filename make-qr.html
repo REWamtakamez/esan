@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>สร้าง QR Code สำหรับ Physics AR</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;background:#eef3f8;color:#14243a;font-family:system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;display:grid;place-items:center;padding:20px}
+    main{width:min(720px,100%);background:white;border:1px solid #dbe4ee;border-radius:24px;padding:clamp(20px,5vw,38px);box-shadow:0 16px 60px #172d4512}
+    .eyebrow{font-size:11px;letter-spacing:.14em;font-weight:800;color:#3376a9}h1{font-size:clamp(24px,5vw,34px);line-height:1.2;margin:8px 0 10px}p{line-height:1.6;color:#506177}.field{display:flex;gap:8px;margin:24px 0 12px;flex-wrap:wrap}input{flex:1;min-width:220px;font:inherit;padding:13px 14px;border:1px solid #bfcddd;border-radius:12px}button{font:inherit;font-weight:750;border:0;border-radius:12px;padding:13px 16px;background:#176db0;color:white;cursor:pointer}button.secondary{background:#e4edf5;color:#19334e}.note{font-size:12px;color:#65768a}.error{color:#b52530;font-size:13px;min-height:20px}#result{margin:24px auto 0;display:none;text-align:center}#qrcode{display:inline-flex;justify-content:center;background:white;padding:14px;border-radius:16px;border:1px solid #dde5ed;min-width:220px;min-height:220px;align-items:center}#qrcode img{display:block;image-rendering:pixelated}#qrcode canvas{display:block;image-rendering:pixelated}.qr-label{font-size:13px;font-weight:800;margin:12px 0 4px}.qr-url{font-size:11px;word-break:break-all;color:#52657b;margin:0 auto 12px;max-width:500px}
+  </style>
+</head>
+<body>
+<main>
+  <div class="eyebrow">PHYSICS ENERGY AR</div>
+  <h1>สร้าง QR Code สำหรับเปิด AR</h1>
+  <p>นำเว็บ AR ไปเผยแพร่บน HTTPS ก่อน จากนั้นวาง URL ของเว็บในช่องนี้ แล้วสร้าง QR Code เพื่อให้นักเรียนสแกนเปิดกล้องได้</p>
+  <div class="field"><input id="url" type="url" placeholder="https://username.github.io/physics-ar/" autocomplete="url"><button id="generate">สร้าง QR Code</button></div>
+  <div id="error" class="error" role="alert"></div>
+  <p class="note">QR นี้ใช้เปิดหน้าเว็บ AR ไม่ใช่ภาพเป้าหมายสำหรับติดตามในกล้อง หลังเปิดเว็บแล้วให้เล็งกล้องไปที่ภาพ physics-target.png</p>
+  <section id="result">
+    <div id="qrcode"></div>
+    <div class="qr-label">สแกนเพื่อเปิด Physics Energy AR</div>
+    <div id="qrUrl" class="qr-url"></div>
+    <button id="download">ดาวน์โหลด QR เป็น PNG</button>
+    <button id="print" class="secondary">พิมพ์ QR</button>
+  </section>
+</main>
+<script>
+  const input = document.getElementById('url');
+  const error = document.getElementById('error');
+  const result = document.getElementById('result');
+  const qrcode = document.getElementById('qrcode');
+  let latestUrl = '';
+  function generate() {
+    error.textContent = '';
+    let parsed;
+    try { parsed = new URL(input.value.trim()); } catch { error.textContent = 'กรุณาใส่ URL ที่ถูกต้อง เช่น https://username.github.io/project/'; return; }
+    if (parsed.protocol !== 'https:') { error.textContent = 'ต้องใช้ URL ที่ขึ้นต้นด้วย https:// เพื่อให้กล้องมือถือทำงานได้'; return; }
+    if (!window.QRCode) { error.textContent = 'โหลดเครื่องมือสร้าง QR ไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่'; return; }
+    latestUrl = parsed.href;
+    qrcode.innerHTML = '';
+    new QRCode(qrcode, {text: latestUrl, width: 280, height: 280, colorDark: '#071b32', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.H});
+    document.getElementById('qrUrl').textContent = latestUrl;
+    result.style.display = 'block';
+    setTimeout(() => window.scrollTo({top: document.body.scrollHeight, behavior:'smooth'}), 100);
+  }
+  document.getElementById('generate').addEventListener('click', generate);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') generate(); });
+  document.getElementById('download').addEventListener('click', () => {
+    const canvas = qrcode.querySelector('canvas');
+    const img = qrcode.querySelector('img');
+    let data = canvas ? canvas.toDataURL('image/png') : (img ? img.src : '');
+    if (!data) { error.textContent = 'ยังไม่มี QR Code ให้ดาวน์โหลด'; return; }
+    const a = document.createElement('a'); a.href = data; a.download = 'physics-energy-ar-qr.png'; a.click();
+  });
+  document.getElementById('print').addEventListener('click', () => window.print());
+</script>
+</body>
+</html>
